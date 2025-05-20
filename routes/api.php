@@ -17,3 +17,26 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Routes pour les réservations
+Route::apiResource('reservations', \App\Http\Controllers\ReservationController::class);
+
+// Routes pour récupérer les données nécessaires aux formulaires de réservation
+Route::get('/bungalows', function () {
+    return \App\Models\Bungalow::where('disponible', true)->get();
+});
+
+Route::get('/tables-repas', function () {
+    return \App\Models\TableRepas::where('disponible', true)->get();
+});
+
+Route::get('/kayaks', function () {
+    return \App\Models\Kayak::where('disponible', true)->get();
+});
+
+Route::get('/activites', function () {
+    return \App\Models\Activite::all();
+});
+
+// Routes pour les clients
+Route::apiResource('clients', \App\Http\Controllers\ClientController::class);

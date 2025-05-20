@@ -29,7 +29,7 @@ Route::prefix('api')->group(function () {
 
 // Toutes les autres routes servent l'application Vue
 Route::get('/{any}', function () {
-    return view('vue');
+    return view('app');
 })->where('any', '.*');
 
 require __DIR__.'/auth.php';

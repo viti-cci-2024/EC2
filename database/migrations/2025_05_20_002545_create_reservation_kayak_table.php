@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('reservation_kayak', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('reservation_id')->constrained('reservations');
+            $table->foreignId('kayak_id')->constrained('kayaks');
+            $table->integer('nb_personnes')->notNullable();
             $table->timestamps();
         });
     }

@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('activites', function (Blueprint $table) {
             $table->id();
+            $table->string('nom', 50)->notNullable();
+            $table->text('description')->nullable();
             $table->timestamps();
         });
     }

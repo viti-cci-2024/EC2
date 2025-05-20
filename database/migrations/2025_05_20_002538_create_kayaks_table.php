@@ -13,6 +13,8 @@ return new class extends Migration
     {
         Schema::create('kayaks', function (Blueprint $table) {
             $table->id();
+            $table->enum('type', ['simple', 'double'])->notNullable();
+            $table->boolean('disponible')->default(true);
             $table->timestamps();
         });
     }

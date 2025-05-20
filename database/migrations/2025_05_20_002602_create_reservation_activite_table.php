@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('reservation_activite', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('reservation_id')->constrained('reservations');
+            $table->foreignId('activite_id')->constrained('activites');
+            $table->date('date_activite')->notNullable();
+            $table->integer('nb_personnes')->default(0);
+            $table->integer('nb_enfants')->default(0);
+            $table->text('commentaire')->nullable();
             $table->timestamps();
         });
     }
