@@ -79,8 +79,10 @@ class ReservationController extends Controller
                 return response()->json(['message' => 'Erreur lors du test SQL: ' . $e->getMessage()], 500);
             }
             
-            // Générer un numéro de réservation unique
-            $reservationNumber = 'RES-' . strtoupper(substr($validated['last_name'], 0, 3)) . '-' . rand(1000, 9999);
+            // Générer un numéro de réservation unique au format CH25050003
+            $currentDate = date('ym'); // Format YY + MM (année et mois)
+            $sequenceNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT); // Nombre à 4 chiffres
+            $reservationNumber = 'CH' . $currentDate . $sequenceNumber; // Exemple: CH25050003
             
             // Créer la réservation avec bungalow_id directement dans la table reservations
             // car la contrainte de clé étrangère l'exige
@@ -400,6 +402,53 @@ class ReservationController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Erreur lors de la suppression de la réservation', 'error' => $e->getMessage()], 500);
+        }
+    }
+    
+    /**
+     * Mettre à jour le numéro de réservation vers le format CH25050003
+     * 
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function updateReservationNumber(Request $request, $id)
+    {
+        try {
+            // Validation de la requête
+            $validated = $request->validate([
+                'reservation_number' => 'required|string|starts_with:CH',
+            ]);
+            
+            // Recherche de la réservation
+            $reservation = Reservation::findOrFail($id);
+            
+            // Log avant modification
+            Log::info('Mise à jour du numéro de réservation', [
+                'id' => $id,
+                'ancien_numero' => $reservation->numero,
+                'nouveau_numero' => $validated['reservation_number']
+            ]);
+            
+            // Mettre à jour le numéro
+            $reservation->numero = $validated['reservation_number'];
+            $reservation->save();
+            
+            // Retourner la confirmation
+            return response()->json([
+                'message' => 'Numéro de réservation mis à jour avec succès',
+                'reservation' => $reservation
+            ]);
+            
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            Log::error('Réservation non trouvée pour la mise à jour du numéro', ['id' => $id]);
+            return response()->json(['message' => 'Réservation non trouvée'], 404);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la mise à jour du numéro de réservation', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['message' => 'Erreur lors de la mise à jour: ' . $e->getMessage()], 500);
         }
     }
 }

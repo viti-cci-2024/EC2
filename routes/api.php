@@ -25,6 +25,9 @@ Route::apiResource('reservations', \App\Http\Controllers\ReservationController::
 Route::post('/bungalow-reservation', [\App\Http\Controllers\ReservationController::class, 'storeBungalowReservation']);
 Route::get('/bungalow-availability', [\App\Http\Controllers\ReservationController::class, 'getBungalowAvailability']);
 
+// Route pour mettre à jour le numéro de réservation formaté (CH25050003)
+Route::post('/update-reservation-number/{id}', [\App\Http\Controllers\ReservationController::class, 'updateReservationNumber']);
+
 // Routes pour récupérer les données nécessaires aux formulaires de réservation
 Route::get('/bungalows', function () {
     return \App\Models\Bungalow::where('disponible', true)->get();

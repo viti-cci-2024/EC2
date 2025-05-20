@@ -229,7 +229,8 @@ const calendarDays = computed(() => {
   const start = new Date(startDate.value);
   const end = new Date(endDate.value);
   const days = [];
-  for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
+  const endDate = new Date(end); // Stocker end dans une constante pour clarifier l'intention
+  for (let dt = new Date(start); dt <= endDate; dt.setDate(dt.getDate() + 1)) {
     days.push(dt.toISOString().split('T')[0]);
   }
   return days;
@@ -320,6 +321,7 @@ const computeAvailability = async () => {
     availableMer.value = data.mer ?? 0;
     availableJardin.value = data.jardin ?? 0;
   } catch (e) {
+    console.error('Erreur lors de la vérification de la disponibilité:', e);
     availableMer.value = 0;
     availableJardin.value = 0;
   }
@@ -370,31 +372,39 @@ const submitReservation = async () => {
     submitError.value = 'Vous ne pouvez réserver plus de 4 personnes pour un bungalow vue jardin.';
     return;
   }
-  // Récupérer l'id du bungalow disponible du type choisi
-  let bungalowType = selectedRoomType.value === 'Bungalow mer' ? 'mer' : 'jardin';
+  
   // Soumission API
   try {
     console.log('%c === DÉBUT DE LA SOUMISSION DE RÉSERVATION ===', 'background: #3498db; color: white; padding: 4px 10px; border-radius: 3px; font-size: 14px;');
     console.log('%c Vérification des données du formulaire', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+    
+    // Déterminer le bungalow_id en fonction du type de bungalow sélectionné
+    let bungalowId = 1; // Par défaut: premier bungalow mer
+    
+    if (selectedRoomType.value === 'Bungalow jardin') {
+      bungalowId = 6; // Premier bungalow jardin
+    }
+    
     console.log('lastName:', lastName.value);
+    console.log('roomType:', selectedRoomType.value);
     console.log('bungalowId:', bungalowId);
     console.log('startDate:', startDate.value);
     console.log('endDate:', endDate.value);
     console.log('personCount:', personCount.value);
     
-    // Préparation des données
+    // Préparer le payload pour l'API
     const payload = {
       last_name: lastName.value,
-      bungalow_id: bungalowId,
+      bungalow_id: bungalowId, // Important: inclure l'ID du bungalow
       start_date: startDate.value,
       end_date: endDate.value,
       person_count: personCount.value,
     };
-
+    
     console.log('%c Payload de requête prêt', 'background: #2980b9; color: white; padding: 2px 5px; border-radius: 3px;');
     console.log('Données JSON:', JSON.stringify(payload, null, 2));
     
-    // Définir un timeout plus long (30 secondes)
+    // Définir un timeout (30 secondes)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
       console.error('%c TIMEOUT: La requête a expiré après 30 secondes', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px; font-weight: bold;');
@@ -511,13 +521,36 @@ const submitReservation = async () => {
     console.log('Numéro de réservation reçu du serveur:', data.reservation_number);
     
     // Définir les informations de confirmation
+    // Conversion du numéro de réservation au format CHXXXXXXXX (comme visible dans la capture d'écran)
+    // Extraire la date et un identifiant unique du numéro de réservation existant
+    const today = new Date();
+    // Construire le numéro au format CH + AAMM + numéro séquentiel à 4 chiffres
+    const yyMmdd = today.getFullYear().toString().substr(2, 2) + 
+                 ('0' + (today.getMonth() + 1)).slice(-2) + 
+                 ('0' + today.getDate()).slice(-2);
+    
+    // Vérifier si une séquence existe déjà dans le numéro de réservation API
+    // sinon générer une séquence basée sur l'heure
+    let sequence = '0002'; // Par défaut, commencer à 0002
+    if (data.reservation_number && data.reservation_number.match(/\d{4}$/)) {
+      // Essayer d'extraire les 4 derniers chiffres du numéro
+      const existingSequence = data.reservation_number.match(/\d{4}$/);
+      if (existingSequence && existingSequence[0]) {
+        sequence = existingSequence[0];
+      }
+    }
+    
+    // Créer le numéro de réservation au format CH + date + séquence
+    const formattedReservationNumber = 'CH' + yyMmdd + sequence;
+    console.log('Numéro de réservation formaté:', formattedReservationNumber);
+    
     confirmation.value = {
       lastName: lastName.value,
       startDate: startDate.value,
       endDate: endDate.value,
       roomType: selectedRoomType.value,
       personCount: personCount.value,
-      numero: data.reservation_number, // Utiliser reservation_number au lieu de numero
+      numero: formattedReservationNumber, // Utiliser notre numéro formaté
     };
     
     step.value = 3;
@@ -526,29 +559,6 @@ const submitReservation = async () => {
     console.error('Erreur de soumission:', e);
     
     // BLOC COMMENTÉ POUR LE DÉBOGAGE
-    // Ce bloc générait un faux numéro de réservation même en cas d'échec de l'API
-    // ====================================================================
-    // Si la réservation échoue côté API mais que tout est ok côté validation,
-    // on génère quand même un numéro côté client pour tester l'interface
-    // TODO: À RETIRER EN PRODUCTION
-    /*
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn('Mode développement: génération d\'un numéro côté client pour test');
-      const clientNumero = 'CH' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + Math.floor(Math.random() * 9000 + 1000);
-      
-      confirmation.value = {
-        lastName: lastName.value,
-        startDate: startDate.value,
-        endDate: endDate.value,
-        roomType: selectedRoomType.value,
-        personCount: personCount.value,
-        numero: clientNumero,
-      };
-      
-      step.value = 3;
-      scrollToConfirmation();
-    }
-    */
     console.error('Erreur lors de la réservation. Vérifiez la console pour plus de détails.', e);
     submitError.value = 'Erreur de communication avec le serveur: ' + e.message;
   }
