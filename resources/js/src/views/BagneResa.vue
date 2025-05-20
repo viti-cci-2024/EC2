@@ -1,31 +1,61 @@
 <template>
-  <div class="w-full py-24">
-    <div class="max-w-7xl mx-auto px-4">
-      <h1 class="text-4xl font-bold mb-8">Réservation de Visite du Bagne</h1>
-      
-      <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-        <img src="/carou-bagne.jpg" alt="Visite du Bagne" class="w-full h-64 object-cover">
-        <div class="p-6">
-          <h3 class="text-2xl font-semibold mb-2">Visite guidée historique</h3>
-          <p class="text-gray-600 mb-4">Plongez dans l'histoire du bagne avec notre guide expérimenté.</p>
-          <ul class="list-disc list-inside mb-4 text-gray-600">
-            <li>Durée : environ 2 heures</li>
-            <li>Départ : accueil du gîte</li>
-            <li>Difficulté : facile, accessible à tous</li>
-          </ul>
-        </div>
+  <!-- Section hero pleine largeur avec background et hauteur 60vh -->
+  <section class="w-full h-[50vh] md:h-[30vh] bg-cover bg-center" :style="{ backgroundImage: 'url(/bagne/bagne-hero.webp)' }">
+    <!-- Conteneur pour centrer verticalement le contenu avec padding -->
+    <div class="max-w-7xl mx-auto flex flex-col justify-center items-start h-full p-5">
+      <!-- Contenu texte en blanc aligné à gauche -->
+      <div class="text-white text-left">
+        <h1 class="mb-3 text-shadow text-4xl font-bold">
+          Une belle visite vous attend
+        </h1>
+        <h4 class="mb-3 text-shadow text-2xl">
+          Planifiez cette activité dès à présent.
+        </h4>
+
       </div>
-      
-      <ReservationForm 
-        title="Réservation de visite du bagne" 
-        buttonText="Réserver ma visite"
-        :maxPersonnes="15"
-        type="bagne"
-      />
+    </div>
+  </section>
+
+
+<!------------------------- FORMULAIRE RESA BAGNE ------------------------------>
+<section class="py-10 px-4 bg-white mt-10">
+  <div class="max-w-7xl mx-auto">
+    <h1 class="text-3xl font-bold mb-4">Réservation de la visite du Bagne</h1>
+    <div class="flex flex-col md:flex-row gap-4">
+      <!-- Formulaire de réservation pour les repas -->
+      <div class="flex-1">
+        <ReservationBagne />
+      </div>
+        <!-- Widget météo affichant les infos pour la ville de Poum -->
+        <div class="flex-1">
+          <WeatherWidget />
+          <br>
+          <p class="mb-3"><strong>Pour réserver votre visite du bagne, vous avez besoin de votre numéro de réservation de chambre.
+              Si vous n'en avez pas encore un, veuillez d'abord réserver votre chambre</strong></p>
+          <RouterLink :to="{ name: 'ChambreResa' }"
+            class="inline-block text-sm font-medium py-2 px-4 rounded-full bg-[#FE8A24] text-white transition-all hover:bg-[#09012B] hover:scale-105">
+            Réserver une chambre
+          </RouterLink>
+        </div>
     </div>
   </div>
-</template>
+</section>
 
+<PrefooterResa />
+
+  
+
+</template>
 <script setup>
-import ReservationForm from '../components/ReservationForm.vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import ReservationBagne from '../components/ReservationBagne.vue';
+import PrefooterResa from '../components/PrefooterResa.vue';
+import WeatherWidget from '../components/WeatherWidget.vue';
+
+
+
 </script>
+
+<style scoped>
+/* insérer style ici */
+</style>

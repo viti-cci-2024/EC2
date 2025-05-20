@@ -1,16 +1,16 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
-    <h1 class="text-6xl font-bold text-gray-800 mb-4">404</h1>
-    <h2 class="text-2xl font-semibold text-gray-600 mb-8">Page non trouvée</h2>
-    <p class="text-gray-500 mb-8 text-center max-w-md">
-      La page que vous recherchez n'existe pas ou a été déplacée.
-    </p>
-    <RouterLink :to="{ name: 'Home' }" class="px-6 py-3 bg-[#FE8A24] text-white rounded-full hover:bg-[#09012B] transition-colors">
-      Retour à l'accueil
-    </RouterLink>
+  <div class="bg-gray-50 flex items-center justify-center py-20">
+    <div class="max-w-md text-center p-6 bg-white rounded-xl shadow-lg">
+      <h1 class="text-6xl font-bold text-gray-800">404</h1>
+      <h2 class="mt-4 text-3xl font-semibold text-gray-700">Page non trouvée</h2>
+      <p class="mt-2 text-gray-600">La page que vous cherchez n'existe pas.</p>
+      <!-- Bouton Réservez via RouterLink vers la page "RepasResa" -->
+      <RouterLink
+        :to="{ name: 'Home' }"
+        class="mt-6 inline-block text-lg font-semibold py-3 px-8 rounded-full bg-[#FE8A24] text-white transition-all hover:bg-[#09012B] hover:scale-105"
+      >
+        Retour Accueil
+      </RouterLink>
+    </div>
   </div>
 </template>
-
-<script setup>
-import { RouterLink } from 'vue-router';
-</script>

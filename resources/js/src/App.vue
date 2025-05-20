@@ -3,7 +3,7 @@
     <!-- Masqué sur borne -->
     <Navbar class="kiosk:hidden" />
 
-    <!-- Le padding‑top ne sert que lorsqu'on affiche la barre -->
+    <!-- Le padding‑top ne sert que lorsqu’on affiche la barre -->
     <main class="flex-grow pt-24 kiosk:pt-0 w-full">
       <router-view />
     </main>

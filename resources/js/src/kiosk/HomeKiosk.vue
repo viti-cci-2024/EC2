@@ -39,7 +39,7 @@
               Bungalow Jardin
             </h2>
             <p class="text-white text-xl kiosk:text-2xl text-shadow mb-6">
-              Spacieux et confortables dans un cadre verdoyant !
+              Spacieux et confortables dans un cadre verdoyant !
             </p>
             <RouterLink
               :to="{ name: 'Chambre' }"
@@ -168,7 +168,7 @@
   >
     <div class="text-center">
       <span class="text-white text-4xl kiosk:text-6xl font-bold">
-        Vivez une expérience unique !
+        Vivez une expérience unique !
       </span>
     </div>
   </section>
@@ -211,13 +211,13 @@
   >
     <div class="text-center">
       <h1 class="mb-6 text-white text-4xl kiosk:text-6xl font-bold">
-        Réservez votre bungalow !
+        Réservez votre bungalow !
       </h1>
       <RouterLink
         :to="{ name: 'ChambreResa' }"
         class="inline-block font-semibold text-lg kiosk:text-3xl py-3 kiosk:py-6 px-8 kiosk:px-14 rounded-full bg-[#FE8A24] text-white transition-all hover:bg-[#09012B] active:bg-[#09012B] active:scale-105 focus-visible:ring-4"
       >
-        Je réserve !
+        Je réserve !
       </RouterLink>
     </div>
   </section>
@@ -233,10 +233,10 @@ import { RouterLink } from 'vue-router';
 // Vos items de carousel
 const items = [
   { title: 'Visite du bagne', text: "Replongez avec notre guide dans l'histoire du pays sur l'île de Pam.", image: '/carou-bagne.jpg', link: { name: 'Bagne' } },
-  { title: 'Randonnée équestre', text: "De belles balades dans la nature avec notre guide. À ne pas manquer !", image: '/carou-cheval.jpg', link: { name: 'Cheval' } },
+  { title: 'Randonnée équestre', text: "De belles balades dans la nature avec notre guide. À ne pas manquer !", image: '/carou-cheval.jpg', link: { name: 'Cheval' } },
   { title: 'Notre garderie', text: "Confiez-nous avec sérénité vos enfants pendant vos activités sportives ou de repos.", image: '/carou-gard.jpg', link: { name: 'Garderie' } },
   { title: 'Club nautique', text: "Balades en famille ou avec vos amis, détente ou sportive en kayak sur le lagon.", image: '/carou-kayak.jpg', link: { name: 'Kayak' } },
-  { title: 'Restaurant Pim', text: "Pour les gourmets et les gourmands, notre carte saura vous ravir !", image: '/carou-repas.jpg', link: { name: 'Repas' } },
+  { title: 'Restaurant Pim', text: "Pour les gourmets et les gourmands, notre carte saura vous ravir !", image: '/carou-repas.jpg', link: { name: 'Repas' } },
   { title: 'Nos bungalows', text: "Jardin ou vue mer, choisissez votre bungalow pour passer un séjour idéal.", image: '/carou-bung.jpg', link: { name: 'Chambre' } },
 ]
 
@@ -332,9 +332,9 @@ watch(itemsPerSlide, () => {
 /* --------------------- FIN CAROUSEL --------------------- */
 
 const testimonials = [
-  { name: 'Billy Gaytes', location: 'USA, Chicago', text: "Notre séjour était fantastique ! Wonderful ! I'll be back, c'est certain !", avatar: '/avatar1.png', rating: 4.5 },
-  { name: 'Elsa Gorithme', location: 'France, Nice', text: 'Le personnel du gîte était au top et la qualité de la literie est exceptionnelle !', avatar: '/avatar2.png', rating: 5 },
-  { name: 'Olivia Jax', location: 'Vanuatu, Port-Vila', text: 'Incroyable site et le personnel était merveilleux. Je reviendrai !', avatar: '/avatar3.png', rating: 4 },
+  { name: 'Billy Gaytes', location: 'USA, Chicago', text: "Notre séjour était fantastique ! Wonderful ! I'll be back, c'est certain !", avatar: '/avatar1.png', rating: 4.5 },
+  { name: 'Elsa Gorithme', location: 'France, Nice', text: 'Le personnel du gîte était au top et la qualité de la literie est exceptionnelle !', avatar: '/avatar2.png', rating: 5 },
+  { name: 'Olivia Jax', location: 'Vanuatu, Port-Vila', text: 'Incroyable site et le personnel était merveilleux. Je reviendrai !', avatar: '/avatar3.png', rating: 4 },
 ]
 </script>
 

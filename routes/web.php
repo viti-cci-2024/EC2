@@ -27,6 +27,11 @@ Route::prefix('api')->group(function () {
     // Exemple: Route::resource('reservations', ReservationController::class);
 });
 
+// Route pour la page d'accueil
+Route::get('/', function () {
+    return view('app');
+});
+
 // Toutes les autres routes servent l'application Vue
 Route::get('/{any}', function () {
     return view('app');
