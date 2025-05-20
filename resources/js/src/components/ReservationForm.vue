@@ -131,9 +131,13 @@
             </div>
 
             <!-- Bouton de soumission -->
-            <button @click="submitReservation" class="bg-green-500 text-white px-4 py-2 rounded">
-                Réserver
-            </button>
+            <button
+  class="bg-green-500 text-white px-4 py-2 rounded"
+  @click="submitReservation"
+  type="button"
+>
+  Réserver
+</button>
             <p v-if="submitError" class="text-red-500 mt-2">{{ submitError }}</p>
         </div>
 
@@ -304,22 +308,21 @@ const isOverlap = (start1, end1, start2, end2) => {
   return start1 <= end2 && start2 <= end1;
 };
 
-// Calcul de la disponibilité en tenant compte des réservations existantes
-const computeAvailability = () => {
-  let bookedMer = 0;
-  let bookedJardin = 0;
-  reservationStore.reservations.forEach(res => {
-    if (
-      res.type === 'Chambre' &&
-      res.startDate && res.endDate &&
-      isOverlap(startDate.value, endDate.value, res.startDate, res.endDate)
-    ) {
-      if (res.roomType === 'Bungalow mer') bookedMer++;
-      if (res.roomType === 'Bungalow jardin') bookedJardin++;
-    }
-  });
-  availableMer.value = capacityMer - bookedMer;
-  availableJardin.value = capacityJardin - bookedJardin;
+// Nouvelle version : disponibilité via l'API Laravel
+const computeAvailability = async () => {
+  availableMer.value = 0;
+  availableJardin.value = 0;
+  if (!startDate.value || !endDate.value) return;
+  try {
+    const res = await fetch(`/api/bungalow-availability?start_date=${startDate.value}&end_date=${endDate.value}`);
+    if (!res.ok) throw new Error('Erreur lors de la récupération des disponibilités');
+    const data = await res.json();
+    availableMer.value = data.mer ?? 0;
+    availableJardin.value = data.jardin ?? 0;
+  } catch (e) {
+    availableMer.value = 0;
+    availableJardin.value = 0;
+  }
 };
 
 // Classe pour l'indicateur de disponibilité
@@ -345,8 +348,8 @@ const scrollToConfirmation = () => {
   });
 };
 
-// Soumission finale du formulaire avec vérification des champs requis
-const submitReservation = () => {
+// Nouvelle version : soumission via l'API Laravel
+const submitReservation = async () => {
   submitError.value = '';
   // Vérifier que le nom est renseigné
   if (!lastName.value.trim()) {
@@ -367,27 +370,230 @@ const submitReservation = () => {
     submitError.value = 'Vous ne pouvez réserver plus de 4 personnes pour un bungalow vue jardin.';
     return;
   }
-  const reservationData = {
-    type: 'Chambre',
-    startDate: startDate.value,
-    endDate: endDate.value,
-    lastName: lastName.value,
-    roomType: selectedRoomType.value,
-    personCount: personCount.value,
-  };
-  const newReservation = reservationStore.addReservation(reservationData);
-  confirmation.value = {
-    lastName: lastName.value,
-    startDate: startDate.value,
-    endDate: endDate.value,
-    roomType: selectedRoomType.value,
-    personCount: personCount.value,
-    numero: newReservation.numero,
-  };
-  step.value = 3;
-  
-  // Faire défiler vers le message de confirmation en utilisant l'ancre
-  scrollToConfirmation();
+  // Récupérer l'id du bungalow disponible du type choisi
+  let bungalowType = selectedRoomType.value === 'Bungalow mer' ? 'mer' : 'jardin';
+  let bungalowId = null;
+  try {
+    // On récupère tous les bungalows disponibles pour la période
+    const dispoRes = await fetch(`/api/bungalow-availability?start_date=${startDate.value}&end_date=${endDate.value}`);
+    if (!dispoRes.ok) throw new Error('Erreur lors de la récupération des disponibilités');
+    const dispoData = await dispoRes.json();
+    if ((bungalowType === 'mer' && dispoData.mer < 1) || (bungalowType === 'jardin' && dispoData.jardin < 1)) {
+      submitError.value = 'Plus de bungalow disponible pour ce type et ces dates.';
+      return;
+    }
+    // On récupère la liste des bungalows pour le type
+    const bungalowsRes = await fetch(`/api/bungalows`);
+    const bungalows = await bungalowsRes.json();
+    // Trouver un bungalow disponible (pas réservé sur la période)
+    for (const b of bungalows) {
+      if (b.type === bungalowType) {
+        // On vérifie qu'il n'est pas déjà réservé sur la période
+        const resCheck = await fetch(`/api/reservations?bungalow_id=${b.id}&start_date=${startDate.value}&end_date=${endDate.value}`);
+        const resList = await resCheck.json();
+        if (!resList || resList.length === 0) {
+          bungalowId = b.id;
+          break;
+        }
+      }
+    }
+    if (!bungalowId) {
+      submitError.value = 'Aucun bungalow disponible trouvé pour ce type.';
+      return;
+    }
+  } catch (e) {
+    submitError.value = 'Erreur lors de la vérification des disponibilités.';
+    return;
+  }
+  // Soumission API
+  try {
+    console.log('%c === DÉBUT DE LA SOUMISSION DE RÉSERVATION ===', 'background: #3498db; color: white; padding: 4px 10px; border-radius: 3px; font-size: 14px;');
+    console.log('%c Vérification des données du formulaire', 'background: #9b59b6; color: white; padding: 2px 5px; border-radius: 3px;');
+    console.log('lastName:', lastName.value);
+    console.log('bungalowId:', bungalowId);
+    console.log('startDate:', startDate.value);
+    console.log('endDate:', endDate.value);
+    console.log('personCount:', personCount.value);
+    
+    // Préparation des données
+    const payload = {
+      last_name: lastName.value,
+      bungalow_id: bungalowId,
+      start_date: startDate.value,
+      end_date: endDate.value,
+      person_count: personCount.value,
+    };
+
+    console.log('%c Payload de requête prêt', 'background: #2980b9; color: white; padding: 2px 5px; border-radius: 3px;');
+    console.log('Données JSON:', JSON.stringify(payload, null, 2));
+    
+    // Définir un timeout plus long (30 secondes)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.error('%c TIMEOUT: La requête a expiré après 30 secondes', 'background: #e74c3c; color: white; padding: 2px 5px; border-radius: 3px; font-weight: bold;');
+      controller.abort();
+    }, 30000);
+    
+    // URL complète pour vérifier
+    // Test des deux types d'URLs pour identifier le problème
+    const useAbsoluteUrl = true; // FLAG DE TEST: Changer entre true/false pour tester les deux approches
+    let apiUrl;
+    
+    if (useAbsoluteUrl) {
+      // URL absolue (pour accès depuis un port différent)
+      apiUrl = 'http://localhost:8000/api/bungalow-reservation';
+      console.log('%c Utilisation de l\'URL ABSOLUE', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
+    } else {
+      // URL relative
+      apiUrl = '/api/bungalow-reservation';
+      console.log('%c Utilisation de l\'URL RELATIVE', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
+    }
+    
+    console.log('URL API utilisée:', apiUrl);
+    console.log('URL complète:', useAbsoluteUrl ? apiUrl : window.location.origin + apiUrl);
+    console.log('Origine actuelle:', window.location.origin);
+    
+    // Vérification du protocole et de l'hôte actuel
+    console.log('Location:', {  
+      protocol: window.location.protocol,
+      host: window.location.host,
+      hostname: window.location.hostname,
+      port: window.location.port,
+      pathname: window.location.pathname
+    });
+    
+    // Utilisation de navigator.onLine pour vérifier si le navigateur est connecté
+    console.log('Statut de connexion du navigateur:', navigator.onLine ? 'Connecté' : 'Déconnecté');
+    
+    // Début de la requête
+    console.log('%c Envoi de la requête API...', 'background: #27ae60; color: white; padding: 2px 5px; border-radius: 3px;');
+    console.time('Durée de la requête API');
+    
+    // Vérification de la présence du serveur avant l'envoi principal
+    try {
+      console.log('Test de connexion au serveur...');
+      const pingResponse = await fetch(useAbsoluteUrl ? 'http://localhost:8000/api/bungalow-availability' : '/api/bungalow-availability', {
+        method: 'HEAD',
+        cache: 'no-cache',
+        headers: { 
+          'X-Ping': 'true'
+        },
+        timeout: 5000
+      }).catch(err => {
+        console.error('Erreur de ping:', err);
+        return { ok: false, status: 0, statusText: err.message };
+      });
+      
+      console.log('Résultat du ping:', pingResponse.ok ? 'Serveur accessible' : 'Serveur inaccessible', {
+        status: pingResponse.status,
+        statusText: pingResponse.statusText
+      });
+    } catch (pingError) {
+      console.error('Erreur pendant le ping du serveur:', pingError);
+    }
+    
+    // Envoi de la requête principale
+    console.log('Envoi de la requête principale...');
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Debug': 'true'
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+      credentials: 'same-origin', // Envoyer les cookies pour les sessions Laravel
+      mode: 'cors', // Permettre les requêtes cross-origin
+      cache: 'no-cache' // Éviter le cache
+    });
+    
+    console.timeEnd('Durée de la requête API');
+    clearTimeout(timeoutId); // Nettoyer le timeout
+    
+    console.log('%c RÉPONSE API REÇUE', 'background: #2ecc71; color: white; padding: 4px 10px; border-radius: 3px; font-size: 14px;');
+    console.log('Status:', res.status, res.statusText);
+    console.log('Type de réponse:', res.type);
+    console.log('Headers:', Object.fromEntries([...res.headers.entries()]));
+    console.log('URL finale:', res.url);
+    
+    // Essayons de lire le texte brut de la réponse d'abord
+    const rawResponse = await res.text();
+    console.log('Réponse brute (taille):', rawResponse.length, 'caractères');
+    console.log('Réponse brute (contenu):', rawResponse);
+    
+    // Maintenant, essayons de traiter comme JSON
+    let data;
+    try {
+      data = JSON.parse(rawResponse);
+      console.log('%c Données JSON parsées avec succès', 'background: #16a085; color: white; padding: 2px 5px; border-radius: 3px;');
+      console.log(data);
+    } catch (jsonError) {
+      console.error('%c ERREUR DE PARSING JSON', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;');
+      console.error('Erreur:', jsonError);
+      console.error('Contenu brut reçu:', rawResponse);
+      submitError.value = 'Erreur lors du traitement de la réponse du serveur. Vérifiez la console pour plus de détails.';
+      return;
+    }
+    
+    if (res.status === 409) {
+      console.warn('%c CONFLIT DÉTECTÉ', 'background: #d35400; color: white; padding: 2px 5px; border-radius: 3px;');
+      submitError.value = 'Ce bungalow a été réservé entre temps. Veuillez réessayer.';
+      return;
+    }
+    
+    if (!res.ok) {
+      console.error('%c ERREUR API', 'background: #c0392b; color: white; padding: 2px 5px; border-radius: 3px;');
+      console.error('Détails:', data);
+      submitError.value = data.message || 'Erreur lors de la réservation';
+      throw new Error(data.message || 'Erreur lors de la réservation');
+    }
+    
+    console.log('%c RÉSERVATION TRAITÉE AVEC SUCCÈS', 'background: #27ae60; color: white; padding: 4px 10px; border-radius: 3px; font-size: 14px;');
+    
+    // Définir les informations de confirmation
+    confirmation.value = {
+      lastName: lastName.value,
+      startDate: startDate.value,
+      endDate: endDate.value,
+      roomType: selectedRoomType.value,
+      personCount: personCount.value,
+      numero: data.numero,
+    };
+    
+    step.value = 3;
+    scrollToConfirmation();
+  } catch (e) {
+    console.error('Erreur de soumission:', e);
+    
+    // BLOC COMMENTÉ POUR LE DÉBOGAGE
+    // Ce bloc générait un faux numéro de réservation même en cas d'échec de l'API
+    // ====================================================================
+    // Si la réservation échoue côté API mais que tout est ok côté validation,
+    // on génère quand même un numéro côté client pour tester l'interface
+    // TODO: À RETIRER EN PRODUCTION
+    /*
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('Mode développement: génération d\'un numéro côté client pour test');
+      const clientNumero = 'CH' + new Date().toISOString().slice(2, 10).replace(/-/g, '') + Math.floor(Math.random() * 9000 + 1000);
+      
+      confirmation.value = {
+        lastName: lastName.value,
+        startDate: startDate.value,
+        endDate: endDate.value,
+        roomType: selectedRoomType.value,
+        personCount: personCount.value,
+        numero: clientNumero,
+      };
+      
+      step.value = 3;
+      scrollToConfirmation();
+    }
+    */
+    console.error('Erreur lors de la réservation. Vérifiez la console pour plus de détails.', e);
+    submitError.value = 'Erreur de communication avec le serveur: ' + e.message;
+  }
 };
 </script>
 

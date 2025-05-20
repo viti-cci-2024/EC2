@@ -41,7 +41,6 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import PrefooterResa from '../components/PrefooterResa.vue';
 import ReservationForm from '../components/ReservationForm.vue';
 import WeatherWidget from '../components/WeatherWidget.vue';
@@ -51,6 +50,6 @@ import WeatherWidget from '../components/WeatherWidget.vue';
 
 
 <style scoped>
-/*  */
+
 
 </style>

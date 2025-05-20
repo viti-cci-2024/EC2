@@ -13,11 +13,15 @@ return new class extends Migration
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('client_id')->constrained('clients');
-            $table->date('date_debut')->notNullable();
-            $table->date('date_fin')->notNullable();
-            $table->foreignId('cree_par')->constrained('utilisateurs');
+            $table->unsignedBigInteger('bungalow_id');
+            $table->string('last_name');
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->unsignedInteger('person_count');
+            $table->string('numero')->unique(); // numéro de réservation
             $table->timestamps();
+
+            $table->foreign('bungalow_id')->references('id')->on('bungalows')->onDelete('cascade');
         });
     }
 

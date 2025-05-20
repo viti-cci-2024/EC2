@@ -21,6 +21,10 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Routes pour les réservations
 Route::apiResource('reservations', \App\Http\Controllers\ReservationController::class);
 
+// Routes simples pour réservation bungalow
+Route::post('/bungalow-reservation', [\App\Http\Controllers\ReservationController::class, 'storeBungalowReservation']);
+Route::get('/bungalow-availability', [\App\Http\Controllers\ReservationController::class, 'getBungalowAvailability']);
+
 // Routes pour récupérer les données nécessaires aux formulaires de réservation
 Route::get('/bungalows', function () {
     return \App\Models\Bungalow::where('disponible', true)->get();

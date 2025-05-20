@@ -12,6 +12,13 @@ class Reservation extends Model
     use HasFactory;
 
     protected $fillable = [
+        'bungalow_id',
+        'last_name',
+        'start_date',
+        'end_date',
+        'person_count',
+        'numero',
+        // Laisse aussi les anciens si tu veux gérer d'autres types de réservation
         'client_id',
         'date_debut',
         'date_fin',

@@ -13,10 +13,13 @@ return new class extends Migration
     {
         Schema::create('reservation_bungalow', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('reservation_id')->constrained('reservations');
-            $table->foreignId('bungalow_id')->constrained('bungalows');
-            $table->integer('nb_personnes')->notNullable();
+            $table->unsignedBigInteger('reservation_id');
+            $table->unsignedBigInteger('bungalow_id');
+            $table->unsignedInteger('nb_personnes');
             $table->timestamps();
+
+            $table->foreign('reservation_id')->references('id')->on('reservations')->onDelete('cascade');
+            $table->foreign('bungalow_id')->references('id')->on('bungalows')->onDelete('cascade');
         });
     }
 

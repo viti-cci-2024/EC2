@@ -10,10 +10,138 @@ use App\Models\Reservation;
 use App\Models\TableRepas;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class ReservationController extends Controller
 {
+    /**
+     * Créer une réservation simple de bungalow (pas d'auth, juste infos formulaire)
+     */
+    public function storeBungalowReservation(Request $request)
+    {
+        Log::info('Requête de réservation reçue', $request->all());
+        
+        // Vérifier l'état de la connexion à la base de données
+        try {
+            $dbConnection = DB::connection()->getPdo();
+            Log::info('Connexion à la base de données établie', [
+                'database' => DB::connection()->getDatabaseName(),
+                'host' => config('database.connections.mysql.host'),
+                'connected' => true
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erreur de connexion à la base de données', [
+                'error' => $e->getMessage(),
+                'host' => config('database.connections.mysql.host'),
+                'database' => config('database.connections.mysql.database')
+            ]);
+            return response()->json(['message' => 'Erreur de connexion à la base de données: ' . $e->getMessage()], 500);
+        }
+        
+        try {
+            $validated = $request->validate([
+                'bungalow_id' => 'required|integer',
+                'last_name' => 'required|string',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after:start_date',
+                'person_count' => 'required|integer|min:1',
+            ]);
+            
+            Log::info('Données de réservation validées', $validated);
+            
+            // Vérifiez s'il y a des conflits de réservation
+            $conflict = Reservation::where('bungalow_id', $validated['bungalow_id'])
+                ->where(function ($query) use ($validated) {
+                    $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
+                        ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                        ->orWhere(function ($q) use ($validated) {
+                            $q->where('start_date', '<=', $validated['start_date'])
+                                ->where('end_date', '>=', $validated['end_date']);
+                        });
+                })->exists();
+            
+            if ($conflict) {
+                Log::warning('Conflit de réservation détecté pour le bungalow', ['bungalow_id' => $validated['bungalow_id']]);
+                return response()->json(['message' => 'Cette période n\'est pas disponible pour ce bungalow.'], 409);
+            }
+            
+            Log::info('Aucun conflit de réservation détecté');
+            
+            // Test simple de la connexion à la base de données
+            try {
+                $testResult = DB::select('SELECT 1 as test');
+                Log::info('Test de requête SQL réussi', ['result' => $testResult]);
+            } catch (\Exception $e) {
+                Log::error('Erreur lors du test SQL', ['error' => $e->getMessage()]);
+                return response()->json(['message' => 'Erreur lors du test SQL: ' . $e->getMessage()], 500);
+            }
+            
+            // Générer un numéro de réservation unique
+            $reservationNumber = 'RES-' . strtoupper(substr($validated['last_name'], 0, 3)) . '-' . rand(1000, 9999);
+            
+            // Créer la réservation
+            $reservation = Reservation::create([
+                'bungalow_id' => $validated['bungalow_id'],
+                'last_name' => $validated['last_name'],
+                'start_date' => $validated['start_date'],
+                'end_date' => $validated['end_date'],
+                'person_count' => $validated['person_count'],
+                'numero' => $reservationNumber,
+            ]);
+            
+            Log::info('Réservation créée avec succès', [
+                'id' => $reservation->id ?? 'non défini',
+                'numero' => $reservationNumber,
+                'bungalow_id' => $validated['bungalow_id']
+            ]);
+            
+            return response()->json([
+                'message' => 'Réservation créée avec succès', 
+                'reservation_number' => $reservationNumber,
+                'reservation' => $reservation
+            ], 201);
+        } catch (\Exception $e) {
+            Log::error('Erreur lors de la création de la réservation', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json(['message' => 'Erreur lors de la création de la réservation: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Retourne la disponibilité des bungalows pour une période donnée
+     * Paramètres : start_date, end_date
+     */
+    public function getBungalowAvailability(Request $request)
+    {
+        $validated = $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+        $bungalows = \App\Models\Bungalow::all();
+        $reservations = \App\Models\Reservation::where(function($q) use ($validated) {
+            $q->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
+              ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+              ->orWhere(function($q2) use ($validated) {
+                  $q2->where('start_date', '<=', $validated['start_date'])
+                     ->where('end_date', '>=', $validated['end_date']);
+              });
+        })->get();
+        $result = [
+            'mer' => 0,
+            'jardin' => 0,
+        ];
+        foreach ($bungalows as $bungalow) {
+            $reserved = $reservations->where('bungalow_id', $bungalow->id)->count() > 0;
+            if (!$reserved) {
+                $result[$bungalow->type]++;
+            }
+        }
+        return response()->json($result);
+    }
     /**
      * Display a listing of the resource.
      */
