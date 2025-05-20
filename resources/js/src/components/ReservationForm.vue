@@ -372,39 +372,6 @@ const submitReservation = async () => {
   }
   // Récupérer l'id du bungalow disponible du type choisi
   let bungalowType = selectedRoomType.value === 'Bungalow mer' ? 'mer' : 'jardin';
-  let bungalowId = null;
-  try {
-    // On récupère tous les bungalows disponibles pour la période
-    const dispoRes = await fetch(`/api/bungalow-availability?start_date=${startDate.value}&end_date=${endDate.value}`);
-    if (!dispoRes.ok) throw new Error('Erreur lors de la récupération des disponibilités');
-    const dispoData = await dispoRes.json();
-    if ((bungalowType === 'mer' && dispoData.mer < 1) || (bungalowType === 'jardin' && dispoData.jardin < 1)) {
-      submitError.value = 'Plus de bungalow disponible pour ce type et ces dates.';
-      return;
-    }
-    // On récupère la liste des bungalows pour le type
-    const bungalowsRes = await fetch(`/api/bungalows`);
-    const bungalows = await bungalowsRes.json();
-    // Trouver un bungalow disponible (pas réservé sur la période)
-    for (const b of bungalows) {
-      if (b.type === bungalowType) {
-        // On vérifie qu'il n'est pas déjà réservé sur la période
-        const resCheck = await fetch(`/api/reservations?bungalow_id=${b.id}&start_date=${startDate.value}&end_date=${endDate.value}`);
-        const resList = await resCheck.json();
-        if (!resList || resList.length === 0) {
-          bungalowId = b.id;
-          break;
-        }
-      }
-    }
-    if (!bungalowId) {
-      submitError.value = 'Aucun bungalow disponible trouvé pour ce type.';
-      return;
-    }
-  } catch (e) {
-    submitError.value = 'Erreur lors de la vérification des disponibilités.';
-    return;
-  }
   // Soumission API
   try {
     console.log('%c === DÉBUT DE LA SOUMISSION DE RÉSERVATION ===', 'background: #3498db; color: white; padding: 4px 10px; border-radius: 3px; font-size: 14px;');
@@ -434,23 +401,12 @@ const submitReservation = async () => {
       controller.abort();
     }, 30000);
     
-    // URL complète pour vérifier
-    // Test des deux types d'URLs pour identifier le problème
-    const useAbsoluteUrl = true; // FLAG DE TEST: Changer entre true/false pour tester les deux approches
-    let apiUrl;
-    
-    if (useAbsoluteUrl) {
-      // URL absolue (pour accès depuis un port différent)
-      apiUrl = 'http://localhost:8000/api/bungalow-reservation';
-      console.log('%c Utilisation de l\'URL ABSOLUE', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
-    } else {
-      // URL relative
-      apiUrl = '/api/bungalow-reservation';
-      console.log('%c Utilisation de l\'URL RELATIVE', 'background: #f39c12; color: white; padding: 2px 5px; border-radius: 3px;');
-    }
+    // Utiliser l'URL relative pour compatibilité avec différents environnements
+    const apiUrl = '/api/bungalow-reservation';
+    console.log('Envoi de la réservation à:', apiUrl);
     
     console.log('URL API utilisée:', apiUrl);
-    console.log('URL complète:', useAbsoluteUrl ? apiUrl : window.location.origin + apiUrl);
+    console.log('URL complète:', window.location.origin + apiUrl);
     console.log('Origine actuelle:', window.location.origin);
     
     // Vérification du protocole et de l'hôte actuel
@@ -472,7 +428,7 @@ const submitReservation = async () => {
     // Vérification de la présence du serveur avant l'envoi principal
     try {
       console.log('Test de connexion au serveur...');
-      const pingResponse = await fetch(useAbsoluteUrl ? 'http://localhost:8000/api/bungalow-availability' : '/api/bungalow-availability', {
+      const pingResponse = await fetch('/api/bungalow-availability', {
         method: 'HEAD',
         cache: 'no-cache',
         headers: { 
@@ -552,6 +508,8 @@ const submitReservation = async () => {
     
     console.log('%c RÉSERVATION TRAITÉE AVEC SUCCÈS', 'background: #27ae60; color: white; padding: 4px 10px; border-radius: 3px; font-size: 14px;');
     
+    console.log('Numéro de réservation reçu du serveur:', data.reservation_number);
+    
     // Définir les informations de confirmation
     confirmation.value = {
       lastName: lastName.value,
@@ -559,7 +517,7 @@ const submitReservation = async () => {
       endDate: endDate.value,
       roomType: selectedRoomType.value,
       personCount: personCount.value,
-      numero: data.numero,
+      numero: data.reservation_number, // Utiliser reservation_number au lieu de numero
     };
     
     step.value = 3;

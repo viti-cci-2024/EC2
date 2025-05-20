@@ -50,14 +50,16 @@ class ReservationController extends Controller
             
             Log::info('Données de réservation validées', $validated);
             
-            // Vérifiez s'il y a des conflits de réservation
-            $conflict = Reservation::where('bungalow_id', $validated['bungalow_id'])
+            // Vérifiez s'il y a des conflits de réservation en utilisant la table pivot
+            $conflict = DB::table('reservations as r')
+                ->join('reservation_bungalow as rb', 'r.id', '=', 'rb.reservation_id')
+                ->where('rb.bungalow_id', $validated['bungalow_id'])
                 ->where(function ($query) use ($validated) {
-                    $query->whereBetween('start_date', [$validated['start_date'], $validated['end_date']])
-                        ->orWhereBetween('end_date', [$validated['start_date'], $validated['end_date']])
+                    $query->whereBetween('r.start_date', [$validated['start_date'], $validated['end_date']])
+                        ->orWhereBetween('r.end_date', [$validated['start_date'], $validated['end_date']])
                         ->orWhere(function ($q) use ($validated) {
-                            $q->where('start_date', '<=', $validated['start_date'])
-                                ->where('end_date', '>=', $validated['end_date']);
+                            $q->where('r.start_date', '<=', $validated['start_date'])
+                                ->where('r.end_date', '>=', $validated['end_date']);
                         });
                 })->exists();
             
@@ -80,14 +82,20 @@ class ReservationController extends Controller
             // Générer un numéro de réservation unique
             $reservationNumber = 'RES-' . strtoupper(substr($validated['last_name'], 0, 3)) . '-' . rand(1000, 9999);
             
-            // Créer la réservation
+            // Créer la réservation avec bungalow_id directement dans la table reservations
+            // car la contrainte de clé étrangère l'exige
             $reservation = Reservation::create([
-                'bungalow_id' => $validated['bungalow_id'],
+                'bungalow_id' => $validated['bungalow_id'],  // IMPORTANT: Ce champ est obligatoire
                 'last_name' => $validated['last_name'],
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
                 'person_count' => $validated['person_count'],
                 'numero' => $reservationNumber,
+            ]);
+            
+            Log::info('Réservation créée avec bungalow_id', [
+                'reservation_id' => $reservation->id,
+                'bungalow_id' => $validated['bungalow_id']
             ]);
             
             Log::info('Réservation créée avec succès', [
