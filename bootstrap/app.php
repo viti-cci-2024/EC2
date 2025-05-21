@@ -43,6 +43,23 @@ $app->singleton(
 
 /*
 |--------------------------------------------------------------------------
+| Register Custom NumberFormatter for environments without intl extension
+|--------------------------------------------------------------------------
+|
+| Filament requires the intl extension, but it might not be available in all
+| environments. This registers a polyfill to handle basic number formatting.
+|
+*/
+
+// Enregistrer notre autoloader personnalisé pour la classe NumberFormatter
+if (!class_exists('NumberFormatter')) {
+    require_once __DIR__ . '/../app/Support/NumberFormatter.php';
+    require_once __DIR__ . '/../app/Support/Autoloader.php';
+    \App\Support\Autoloader::register();
+}
+
+/*
+|--------------------------------------------------------------------------
 | Return The Application
 |--------------------------------------------------------------------------
 |

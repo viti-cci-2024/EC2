@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
     ];
 
     /**
@@ -41,4 +42,24 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+    
+    /**
+     * Vérifie si l'utilisateur est un administrateur
+     *
+     * @return bool
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+    
+    /**
+     * Vérifie si l'utilisateur est un employé
+     *
+     * @return bool
+     */
+    public function isEmployee(): bool
+    {
+        return $this->role === 'employee';
+    }
 }
