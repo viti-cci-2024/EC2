@@ -84,10 +84,14 @@ class ReservationController extends Controller
             $sequenceNumber = str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT); // Nombre à 4 chiffres
             $reservationNumber = 'CH' . $currentDate . $sequenceNumber; // Exemple: CH25050003
             
-            // Créer la réservation avec bungalow_id directement dans la table reservations
-            // car la contrainte de clé étrangère l'exige
+            // Récupérer le type de bungalow à partir de son ID
+            $bungalow = Bungalow::find($validated['bungalow_id']);
+            $bungalowType = $bungalow ? $bungalow->type : null;
+            
+            // Créer la réservation avec bungalow_id et bungalow_type
             $reservation = Reservation::create([
                 'bungalow_id' => $validated['bungalow_id'],  // IMPORTANT: Ce champ est obligatoire
+                'bungalow_type' => $bungalowType,           // Nouveau champ pour le type de bungalow
                 'last_name' => $validated['last_name'],
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],

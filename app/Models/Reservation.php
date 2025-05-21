@@ -13,6 +13,7 @@ class Reservation extends Model
 
     protected $fillable = [
         'bungalow_id',
+        'bungalow_type',
         'last_name',
         'start_date',
         'end_date',
@@ -24,10 +25,16 @@ class Reservation extends Model
         'date_fin',
         'cree_par',
     ];
-
+    
+    /**
+     * Cast des attributs
+     */
     protected $casts = [
+        'start_date' => 'date',
+        'end_date' => 'date',
         'date_debut' => 'date',
         'date_fin' => 'date',
+        'person_count' => 'integer',
     ];
 
     /**
@@ -47,7 +54,15 @@ class Reservation extends Model
     }
 
     /**
-     * Les bungalows réservés
+     * Le bungalow réservé (relation directe)
+     */
+    public function bungalow(): BelongsTo
+    {
+        return $this->belongsTo(Bungalow::class);
+    }
+    
+    /**
+     * Les bungalows réservés (relation many-to-many via table pivot)
      */
     public function bungalows(): BelongsToMany
     {

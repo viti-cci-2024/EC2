@@ -19,7 +19,7 @@ class ReservationResource extends Resource
 {
     protected static ?string $model = Reservation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar';    
+    protected static ?string $navigationIcon = 'heroicon-o-calendar';
     protected static ?string $navigationGroup = 'Gestion';
     
     protected static ?string $navigationLabel = 'Réservations';
@@ -29,6 +29,7 @@ class ReservationResource extends Resource
     // Constantes pour éviter la duplication
     private const BUNGALOW_MER = 'Bungalow mer';
     private const BUNGALOW_JARDIN = 'Bungalow jardin';
+    private const DATE_FORMAT = 'd/m/Y';
 
     public static function form(Form $form): Form
     {
@@ -40,30 +41,60 @@ class ReservationResource extends Resource
                             ->label('Nom')
                             ->required()
                             ->maxLength(255)
-                            ->columnSpan(2),
-                
-                        Forms\Components\Select::make('bungalow_type')
-                            ->label('Type de Bungalow')
-                            ->options([
-                                'mer' => self::BUNGALOW_MER,
-                                'jardin' => self::BUNGALOW_JARDIN,
-                            ])
-                            ->afterStateHydrated(function (Forms\Components\Select $component, $record) {
-                                if ($record) {
-                                    $bungalow = $record->bungalows()->first();
-                                    if ($bungalow) {
-                                        $component->state($bungalow->type);
-                                    }
+                            // S'assurer que le nom est correctement formaté (avec guillemets)
+                            ->beforeStateDehydrated(function ($state, callable $set) {
+                                if (is_string($state)) {
+                                    $set('last_name', $state);
                                 }
                             })
+                            ->columnSpan(2),
+                
+                        Forms\Components\Select::make('bungalow_id')
+                            ->label('Type de Bungalow')
+                            ->options(function () {
+                                // Récupérer tous les bungalows groupés par type
+                                $bungalows = \App\Models\Bungalow::all()
+                                    ->groupBy('type')
+                                    ->map(function ($group) {
+                                        // Pour chaque type, prendre le premier bungalow disponible
+                                        return $group->first();
+                                    });
+                                
+                                // Créer un tableau d'options avec les IDs comme clés
+                                $options = [];
+                                foreach ($bungalows as $bungalow) {
+                                    $label = $bungalow->type === 'mer' ? self::BUNGALOW_MER : self::BUNGALOW_JARDIN;
+                                    $options[$bungalow->id] = $label;
+                                }
+                                
+                                return $options;
+                            })
                             ->required()
+                            ->reactive() // Rendre réactif pour mettre à jour le nombre max de personnes
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                // Récupérer le type du bungalow sélectionné
+                                $bungalow = \App\Models\Bungalow::find($state);
+                                if (!$bungalow) {
+                                    return;
+                                }
+                                
+                                $bungalowType = $bungalow->type;
+                                
+                                // Si le nombre de personnes dépasse la limite du nouveau type de bungalow, ajuster
+                                $currentPersonCount = $get('person_count');
+                                $maxPersons = $bungalowType === 'mer' ? 2 : 4;
+                                
+                                if ($currentPersonCount > $maxPersons) {
+                                    $set('person_count', $maxPersons);
+                                }
+                            })
                             ->columnSpan(2),
                 
                         Forms\Components\DatePicker::make('start_date')
                             ->label('Date de début')
                             ->required()
-                            ->minDate(now())
-                            ->displayFormat('d/m/Y')
+                            ->minDate(now()->startOfDay())
+                            ->displayFormat(self::DATE_FORMAT)
                             ->closeOnDateSelection(),
                             
                         Forms\Components\DatePicker::make('end_date')
@@ -71,7 +102,7 @@ class ReservationResource extends Resource
                             ->required()
                             ->minDate(fn (Forms\Get $get) => 
                                 $get('start_date') ? \Carbon\Carbon::parse($get('start_date'))->addDay() : now()->addDay())
-                            ->displayFormat('d/m/Y')
+                            ->displayFormat(self::DATE_FORMAT)
                             ->closeOnDateSelection()
                             ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, ?string $state) {
                                 if ($get('start_date') && $state && \Carbon\Carbon::parse($state)->lte(\Carbon\Carbon::parse($get('start_date')))) {
@@ -82,10 +113,41 @@ class ReservationResource extends Resource
                         Forms\Components\TextInput::make('person_count')
                             ->label('Nombre de personnes')
                             ->required()
-                            ->type('number') // Utiliser le type HTML5 au lieu de ->numeric()
-                            ->rules(['integer', 'min:1', 'max:8']) // Validation côté serveur
+                            ->type('number')
+                            ->rules(['integer', 'min:1'])
                             ->minValue(1)
-                            ->maxValue(8),
+                            // Limite dynamique selon le type de bungalow
+                            ->maxValue(function (Forms\Get $get) {
+                                $bungalowId = $get('bungalow_id');
+                                if (!$bungalowId) {
+                                    return 4; // Valeur par défaut
+                                }
+                                
+                                $bungalow = \App\Models\Bungalow::find($bungalowId);
+                                if (!$bungalow) {
+                                    return 4; // Valeur par défaut
+                                }
+                                
+                                return $bungalow->type === 'mer' ? 2 : 4;
+                            })
+                            // Mise à jour automatique si la valeur dépasse la limite
+                            ->reactive()
+                            ->afterStateUpdated(function (Forms\Get $get, Forms\Set $set, $state) {
+                                $bungalowId = $get('bungalow_id');
+                                if (!$bungalowId) {
+                                    return;
+                                }
+                                
+                                $bungalow = \App\Models\Bungalow::find($bungalowId);
+                                if (!$bungalow) {
+                                    return;
+                                }
+                                
+                                $maxPersons = $bungalow->type === 'mer' ? 2 : 4;
+                                if ($state > $maxPersons) {
+                                    $set('person_count', $maxPersons);
+                                }
+                            }),
                     
                         Forms\Components\TextInput::make('numero')
                             ->label('Numéro de réservation')
@@ -118,21 +180,21 @@ class ReservationResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->weight('bold'),
-                Tables\Columns\TextColumn::make('bungalows.type')
+                Tables\Columns\TextColumn::make('bungalow_type')
                     ->label('Type de bungalow')
                     ->formatStateUsing(fn (?string $state): string => 
-                        $state === 'mer' ? 'Bungalow mer' : 'Bungalow jardin')
+                        $state === 'mer' ? self::BUNGALOW_MER : self::BUNGALOW_JARDIN)
                     ->badge()
                     ->color(fn (?string $state): string => 
                         $state === 'mer' ? 'info' : 'success')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('start_date')
                     ->label('Début')
-                    ->date('d/m/Y')
+                    ->date(self::DATE_FORMAT)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('end_date')
                     ->label('Fin')
-                    ->date('d/m/Y')
+                    ->date(self::DATE_FORMAT)
                     ->sortable(),
                 Tables\Columns\TextColumn::make('person_count')
                     ->label('Personnes')
@@ -141,7 +203,7 @@ class ReservationResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créée le')
-                    ->dateTime('d/m/Y H:i')
+                    ->dateTime(self::DATE_FORMAT . ' H:i')
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
@@ -237,79 +299,17 @@ class ReservationResource extends Resource
     // Hook pour le processus de création d'une réservation
     public static function afterCreate($livewire, $record): void
     {
-        if (!$record) {
-            return; // Sécurité
-        }
+        // La création de réservation est maintenant gérée directement par le modèle
+        // avec le champ bungalow_id, donc nous n'avons plus besoin de code supplémentaire ici
         
-        // Générer un nouveau numéro de réservation
-        $lastReservation = \App\Models\Reservation::orderBy('id', 'desc')
-            ->where('numero', 'like', 'CH%')
-            ->first();
-        
-        $newNumber = 1;
-        $year = date('y');
-        $month = date('m');
-        
-        if ($lastReservation && preg_match('/^CH\d{4}(\d+)$/', $lastReservation->numero, $matches)) {
-            $newNumber = intval($matches[1]) + 1;
-        }
-        
-        // Formater le numéro avec un padding de zéros (4 chiffres)
-        $numeroFormatted = sprintf('CH%s%s%04d', $year, $month, $newNumber);
-        
-        // Mettre à jour le numéro de la réservation
-        $record->update([
-            'numero' => $numeroFormatted
-        ]);
-        
-        // Récupérer le type de bungalow sélectionné
-        $bungalowType = $livewire->data['bungalow_type'] ?? null;
-        
-        if ($bungalowType) {
-            // Trouver un bungalow du type sélectionné
-            $bungalow = \App\Models\Bungalow::where('type', $bungalowType)
-                ->where('disponible', true)
-                ->first();
-            
-            if ($bungalow) {
-                // Attacher le bungalow à la réservation
-                $record->bungalows()->attach($bungalow->id, [
-                    'nb_personnes' => $record->person_count ?? 1
-                ]);
-            }
-        }
+        // L'observateur ReservationObserver s'occupe de générer le numéro de réservation
+        // et de formater correctement les données
     }
     
     // Hook pour le processus de mise à jour d'une réservation
     public static function afterSave($livewire): void
     {
-        if (!$livewire) {
-            return; // Sécurité
-        }
-        
-        $record = $livewire->getRecord();
-        if (!$record) {
-            return;
-        }
-        
-        // Récupérer le nouveau type de bungalow sélectionné
-        $bungalowType = $livewire->data['bungalow_type'] ?? null;
-        
-        if ($bungalowType) {
-            // Trouver un bungalow du type sélectionné
-            $bungalow = \App\Models\Bungalow::where('type', $bungalowType)
-                ->where('disponible', true)
-                ->first();
-            
-            if ($bungalow) {
-                // Détacher tous les bungalows actuels
-                $record->bungalows()->detach();
-                
-                // Attacher le nouveau bungalow
-                $record->bungalows()->attach($bungalow->id, [
-                    'nb_personnes' => $record->person_count ?? 1
-                ]);
-            }
-        }
+        // La mise à jour de réservation est maintenant gérée directement par le modèle
+        // avec le champ bungalow_id, donc nous n'avons plus besoin de code supplémentaire ici
     }
 }
