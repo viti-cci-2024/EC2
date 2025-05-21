@@ -73,19 +73,17 @@ class UserResource extends Resource
 
     public static function table(Table $table): Table
     {
+        // Réintroduction progressive des fonctionnalités sans le tri
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('id')
-                    ->label('ID')
-                    ->sortable(),
+                    ->label('ID'),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
-                    ->searchable()
-                    ->sortable(),
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('role')
                     ->label('Rôle')
                     ->badge()
@@ -98,13 +96,10 @@ class UserResource extends Resource
                         'admin' => 'Administrateur',
                         'employee' => 'Employé',
                         default => $state,
-                    })
-                    ->sortable(),
-
+                    }),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créé le')
-                    ->dateTime('d/m/Y H:i')
-                    ->sortable(),
+                    ->dateTime('d/m/Y H:i'),
             ])
             ->defaultSort('id', 'desc')
             ->filters([

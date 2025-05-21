@@ -176,13 +176,11 @@ class ReservationResource extends Resource
                 Tables\Columns\TextColumn::make('numero')
                     ->label('N° Réservation')
                     ->searchable()
-                    ->sortable()
                     ->copyable()
                     ->color('primary'),
                 Tables\Columns\TextColumn::make('last_name')
                     ->label('Nom')
                     ->searchable()
-                    ->sortable()
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('bungalow_type')
                     ->label('Type de bungalow')
@@ -194,21 +192,17 @@ class ReservationResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('start_date')
                     ->label('Début')
-                    ->date(self::DATE_FORMAT)
-                    ->sortable(),
+                    ->date(self::DATE_FORMAT),
                 Tables\Columns\TextColumn::make('end_date')
                     ->label('Fin')
-                    ->date(self::DATE_FORMAT)
-                    ->sortable(),
+                    ->date(self::DATE_FORMAT),
                 Tables\Columns\TextColumn::make('person_count')
                     ->label('Personnes')
                     // Utiliser un formatage personnalisé au lieu de ->numeric()
-                    ->formatStateUsing(fn (int $state): string => (string) $state)
-                    ->sortable(),
+                    ->formatStateUsing(fn (int $state): string => (string) $state),
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créée le')
                     ->dateTime(self::DATE_FORMAT . ' H:i')
-                    ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
