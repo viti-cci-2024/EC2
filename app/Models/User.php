@@ -62,4 +62,14 @@ class User extends Authenticatable
     {
         return $this->role === 'employee';
     }
+    
+    /**
+     * Compte le nombre d'administrateurs dans le système
+     *
+     * @return int
+     */
+    public static function countAdmins(): int
+    {
+        return self::where('role', 'admin')->count();
+    }
 }

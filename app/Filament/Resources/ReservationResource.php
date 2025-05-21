@@ -24,6 +24,10 @@ class ReservationResource extends Resource
     
     protected static ?string $navigationLabel = 'Réservations';
     
+    protected static ?string $modelLabel = 'Réservation';
+    
+    protected static ?string $pluralModelLabel = 'Réservations';
+    
     protected static ?int $navigationSort = 2;
     
     // Constantes pour éviter la duplication

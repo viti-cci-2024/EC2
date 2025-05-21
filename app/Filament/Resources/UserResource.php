@@ -23,6 +23,10 @@ class UserResource extends Resource
     
     protected static ?string $navigationLabel = 'Utilisateurs';
     
+    protected static ?string $modelLabel = 'Utilisateur';
+    
+    protected static ?string $pluralModelLabel = 'Utilisateurs';
+    
     protected static ?int $navigationSort = 1;
     
     // Seuls les administrateurs peuvent accéder à cette ressource
@@ -96,6 +100,7 @@ class UserResource extends Resource
                         default => $state,
                     })
                     ->sortable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créé le')
                     ->dateTime('d/m/Y H:i')
@@ -110,13 +115,17 @@ class UserResource extends Resource
                     ->label('Voir'),
                 Tables\Actions\EditAction::make()
                     ->label('Éditer'),
-                Tables\Actions\DeleteAction::make()
+                // Remplacer le bouton Supprimer par un bouton qui redirige vers la page Éditer
+                Tables\Actions\Action::make('delete_redirect')
                     ->label('Supprimer')
-                    ->requiresConfirmation() // Demande confirmation avant suppression
-                    ->modalHeading('Supprimer l\'utilisateur')
-                    ->modalDescription('Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible.')
-                    ->modalSubmitActionLabel('Oui, supprimer')
-                    ->modalCancelActionLabel('Annuler'),
+                    ->color('danger')
+                    ->icon('heroicon-o-trash')
+                    ->url(fn (User $record): string => UserResource::getUrl('edit', ['record' => $record]))
+                    // Désactiver la suppression pour le dernier administrateur
+                    ->visible(function (?User $record): bool {
+                        // Ne pas afficher le bouton pour le dernier administrateur
+                        return $record ? !($record->isAdmin() && User::countAdmins() <= 1) : true;
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -126,7 +135,32 @@ class UserResource extends Resource
                         ->modalHeading('Supprimer les utilisateurs sélectionnés')
                         ->modalDescription('Êtes-vous sûr de vouloir supprimer ces utilisateurs ? Cette action est irréversible.')
                         ->modalSubmitActionLabel('Oui, supprimer')
-                        ->modalCancelActionLabel('Annuler'),
+                        ->modalCancelActionLabel('Annuler')
+                        // Empêcher la suppression des administrateurs s'il n'y a qu'un seul administrateur
+                        ->deselectRecordsAfterCompletion()
+                        ->action(function (\Illuminate\Database\Eloquent\Collection $records): void {
+                            $adminCount = User::countAdmins();
+                            $selectedAdmins = $records->filter(fn (User $record) => $record->isAdmin())->count();
+                            
+                            // Vérifier si la suppression laisserait au moins un administrateur
+                            if ($adminCount - $selectedAdmins >= 1) {
+                                // Supprimer normalement
+                                $records->each->delete();
+                                
+                                \Filament\Notifications\Notification::make()
+                                    ->success()
+                                    ->title('Utilisateurs supprimés')
+                                    ->send();
+                            } else {
+                                // Afficher une notification d'erreur
+                                \Filament\Notifications\Notification::make()
+                                    ->danger()
+                                    ->title('Action impossible')
+                                    ->body('Vous ne pouvez pas supprimer tous les administrateurs. Créez un autre administrateur d\'abord.')
+                                    ->persistent()
+                                    ->send();
+                            }
+                        }),
                 ]),
             ]);
     }
