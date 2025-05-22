@@ -26,18 +26,9 @@ class ReservationStatsOverview extends BaseWidget
         // Calculer le nombre moyen de personnes par réservation
         $averagePersons = Reservation::avg('person_count') ?? 0;
         
-        // Calculer le nombre de réservations par type de bungalow en utilisant la table pivot
-        $bungalowSeaCount = Reservation::join('reservation_bungalow', 'reservations.id', '=', 'reservation_bungalow.reservation_id')
-            ->join('bungalows', 'reservation_bungalow.bungalow_id', '=', 'bungalows.id')
-            ->where('bungalows.type', 'mer')
-            ->distinct('reservations.id')
-            ->count();
-            
-        $bungalowGardenCount = Reservation::join('reservation_bungalow', 'reservations.id', '=', 'reservation_bungalow.reservation_id')
-            ->join('bungalows', 'reservation_bungalow.bungalow_id', '=', 'bungalows.id')
-            ->where('bungalows.type', 'jardin')
-            ->distinct('reservations.id')
-            ->count();
+        // Calculer le nombre de réservations par type de bungalow directement depuis la table reservations
+        $bungalowSeaCount = Reservation::where('bungalow_type', 'mer')->count();
+        $bungalowGardenCount = Reservation::where('bungalow_type', 'jardin')->count();
         
         $totalReservations = $bungalowSeaCount + $bungalowGardenCount;
         $seaPercentage = $totalReservations > 0 ? round(($bungalowSeaCount / $totalReservations) * 100) : 0;
