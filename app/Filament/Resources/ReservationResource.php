@@ -203,78 +203,28 @@ class ReservationResource extends Resource
                 Tables\Columns\TextColumn::make('created_at')
                     ->label('Créée le')
                     ->dateTime(self::DATE_FORMAT . ' H:i')
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->visible(false), // Caché plutôt que toggleable
             ])
             ->defaultSort('created_at', 'desc')
-            ->filters([
-                Tables\Filters\SelectFilter::make('bungalow_type')
-                    ->label('Type de bungalow')
-                    ->relationship('bungalows', 'type')
-                    ->options([
-                        'mer' => self::BUNGALOW_MER,
-                        'jardin' => self::BUNGALOW_JARDIN,
-                    ]),
-                Tables\Filters\Filter::make('current_reservations')
-                    ->label('Réservations en cours')
-                    ->query(fn (Builder $query): Builder => 
-                        $query->where('start_date', '<=', today())
-                            ->where('end_date', '>=', today())),
-                Tables\Filters\Filter::make('future_reservations')
-                    ->label('Réservations futures')
-                    ->query(fn (Builder $query): Builder => 
-                        $query->where('start_date', '>', today())),
-                Tables\Filters\Filter::make('past_reservations')
-                    ->label('Réservations passées')
-                    ->query(fn (Builder $query): Builder => 
-                        $query->where('end_date', '<', today())),
-            ])
+            ->filters([]) // Retirer tous les filtres
+            ->filtersFormColumns(1)
+            ->filtersTriggerAction(null) // Supprimer le bouton de filtres
             ->actions([
                 Tables\Actions\ActionGroup::make([
                     Tables\Actions\ViewAction::make()
                         ->label('Voir'),
                     Tables\Actions\EditAction::make()
                         ->label('Éditer'),
-                    Tables\Actions\Action::make('change_bungalow')
-                        ->label('Changer de bungalow')
-                        ->icon('heroicon-o-arrows-right-left')
-                        ->color('warning')
-                        ->form([
-                            Forms\Components\Select::make('new_bungalow_id')
-                                ->label('Nouveau bungalow')
-                                ->required()
-                                ->relationship(
-                                    name: 'bungalows',
-                                    titleAttribute: 'type',
-                                    modifyQueryUsing: fn (Builder $query) => $query->where('disponible', true)
-                                )
-                                ->preload(),
-                        ])
-                        ->action(function (Reservation $record, array $data): void {
-                            // Détacher tous les bungalows existants
-                            $record->bungalows()->detach();
-                            // Attacher le nouveau bungalow
-                            $record->bungalows()->attach($data['new_bungalow_id'], ['nb_personnes' => $record->person_count]);
-                        }),
-                    Tables\Actions\DeleteAction::make()
+                    // Remplacer l'action de suppression directe par une redirection vers la page d'édition
+                    Tables\Actions\Action::make('delete_redirect')
                         ->label('Supprimer')
-                        ->requiresConfirmation()
-                        ->modalHeading('Supprimer la réservation')
-                        ->modalDescription('Êtes-vous sûr de vouloir supprimer cette réservation ? Cette action est irréversible.')
-                        ->modalSubmitActionLabel('Oui, supprimer')
-                        ->modalCancelActionLabel('Annuler'),
+                        ->icon('heroicon-o-trash')
+                        ->color('danger')
+                        ->url(fn (Reservation $record): string => static::getUrl('edit', ['record' => $record])),
                 ])
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make()
-                        ->label('Supprimer la sélection')
-                        ->requiresConfirmation()
-                        ->modalHeading('Supprimer les réservations sélectionnées')
-                        ->modalDescription('Êtes-vous sûr de vouloir supprimer ces réservations ? Cette action est irréversible.')
-                        ->modalSubmitActionLabel('Oui, supprimer')
-                        ->modalCancelActionLabel('Annuler'),
-                ]),
-            ]);
+            ->bulkActions([])
+            ->toggleColumnsTriggerAction(null); // Retirer le bouton de basculement des colonnes
     }
 
     public static function getRelations(): array

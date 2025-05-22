@@ -9,29 +9,39 @@ use Filament\Widgets\ChartWidget;
 
 class ReservationsChart extends ChartWidget
 {
+    // Désactiver temporairement l'affichage du widget
+    public static function canView(): bool
+    {
+        return false; // Widget temporairement désactivé
+    }
     protected static ?string $heading = 'Évolution des réservations';
     
-    protected static ?string $pollingInterval = '60s';
+    protected static ?string $pollingInterval = null;
+    
+    // Désactiver la mise en cache pour forcer la mise à jour des données à chaque rafraîchissement
+    protected function getCacheLifetime(): ?int
+    {
+        return null; // Désactive complètement la mise en cache
+    }
     
     protected static ?string $maxHeight = '300px';
     
+    // Faire en sorte que le widget occupe toute la largeur
+    protected int | string | array $columnSpan = 'full';
+    
     protected function getData(): array
     {
-        // Récupérer les 6 derniers mois de données
-        $startDate = now()->subMonths(6)->startOfMonth()->format('Y-m-d');
-        $endDate = now()->endOfMonth()->format('Y-m-d');
+        // Année en cours pour le filtrage des données
+        $currentYear = now()->year;
         
-        // Utiliser une requête SQL directe pour obtenir le nombre de réservations par mois
+        // Utiliser une requête SQL directe pour obtenir le nombre de réservations par mois pour l'année en cours
         $reservationsByMonth = DB::table('reservations')
             ->select(
-                DB::raw('YEAR(created_at) as year'),
                 DB::raw('MONTH(created_at) as month'),
                 DB::raw('COUNT(*) as count')
             )
-            ->where('created_at', '>=', $startDate)
-            ->where('created_at', '<=', $endDate)
-            ->groupBy('year', 'month')
-            ->orderBy('year')
+            ->whereYear('created_at', $currentYear)
+            ->groupBy('month')
             ->orderBy('month')
             ->get();
         
@@ -39,17 +49,15 @@ class ReservationsChart extends ChartWidget
         $labels = [];
         $data = [];
         
-        // Générer tous les mois sur 6 mois
-        $startMonthDate = now()->subMonths(6)->startOfMonth();
-        for ($i = 0; $i < 6; $i++) {
-            $monthDate = (clone $startMonthDate)->addMonths($i);
-            $yearMonth = $monthDate->format('Y-n');
+        // Générer tous les mois de l'année
+        for ($month = 1; $month <= 12; $month++) {
+            $monthDate = Carbon::createFromDate($currentYear, $month, 1);
             $labels[] = $monthDate->format('M Y');
             
             // Chercher le nombre de réservations pour ce mois
             $found = false;
             foreach ($reservationsByMonth as $item) {
-                if ("{$item->year}-{$item->month}" === $yearMonth) {
+                if ($item->month === $month) {
                     $data[] = $item->count;
                     $found = true;
                     break;

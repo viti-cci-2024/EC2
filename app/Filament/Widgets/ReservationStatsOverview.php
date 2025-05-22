@@ -11,7 +11,13 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class ReservationStatsOverview extends BaseWidget
 {
-    protected static ?string $pollingInterval = '10s';
+    protected static ?string $pollingInterval = null;
+    
+    // Désactiver la mise en cache pour forcer la mise à jour des données à chaque rafraîchissement
+    protected function getCacheLifetime(): ?int
+    {
+        return null; // Désactive complètement la mise en cache
+    }
     
     // Constante pour les styles communs des cartes statistiques
     private const CARD_STYLE = 'rounded-xl border border-gray-200 p-6 shadow-sm';

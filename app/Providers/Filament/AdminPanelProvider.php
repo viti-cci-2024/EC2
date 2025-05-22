@@ -55,7 +55,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 Widgets\AccountWidget::class,
                 ReservationStatsOverview::class,
-                ReservationsChart::class,
+                // ReservationsChart::class, // Temporairement désactivé, à réactiver plus tard
             ])
             ->middleware([
                 EncryptCookies::class,
