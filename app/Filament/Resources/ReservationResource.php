@@ -175,12 +175,12 @@ class ReservationResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('numero')
                     ->label('N° Réservation')
-                    ->searchable()
+                    ->searchable(false)
                     ->copyable()
                     ->color('primary'),
                 Tables\Columns\TextColumn::make('last_name')
                     ->label('Nom')
-                    ->searchable()
+                    ->searchable(false)
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('bungalow_type')
                     ->label('Type de bungalow')
@@ -189,7 +189,7 @@ class ReservationResource extends Resource
                     ->badge()
                     ->color(fn (?string $state): string => 
                         $state === 'mer' ? 'info' : 'success')
-                    ->searchable(),
+                    ->searchable(false),
                 Tables\Columns\TextColumn::make('start_date')
                     ->label('Début')
                     ->date(self::DATE_FORMAT),

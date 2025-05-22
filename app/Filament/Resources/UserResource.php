@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
 use App\Models\User;
+use App\Rules\StrongPassword;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -61,6 +62,12 @@ class UserResource extends Resource
                         Forms\Components\TextInput::make('password')
                             ->label('Mot de passe')
                             ->password()
+                            ->rules([
+                                fn (string $operation): array => $operation === 'create' 
+                                    ? ['required', 'min:8', 'regex:/[A-Z]/', 'regex:/[0-9]/', 'regex:/[^A-Za-z0-9]/'] 
+                                    : []
+                            ])
+                            ->helperText('Le mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un caractère spécial.')
                             ->dehydrateStateUsing(fn (?string $state) => 
                                 filled($state) ? bcrypt($state) : null
                             )
@@ -80,10 +87,10 @@ class UserResource extends Resource
                     ->label('ID'),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nom')
-                    ->searchable(),
+                    ->searchable(false),
                 Tables\Columns\TextColumn::make('email')
                     ->label('Email')
-                    ->searchable(),
+                    ->searchable(false),
                 Tables\Columns\TextColumn::make('role')
                     ->label('Rôle')
                     ->badge()
