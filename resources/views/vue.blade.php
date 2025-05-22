@@ -56,14 +56,6 @@
     <body>
         <div id="app"></div>
         
-        <!-- Bouton de test uniquement visible en mode développement -->
-        @if(app()->environment('local'))
-        <div id="debug-panel" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; z-index: 9999; font-family: monospace;">
-            <div>Debug Tools</div>
-            <button onclick="console.log(window.checkIfFallbackDisabled())" style="margin: 5px; padding: 3px 5px;">Vérifier Fallback</button>
-            <button onclick="window.runAPITest().then(r => console.log('Résultat test API:', r))" style="margin: 5px; padding: 3px 5px;">Test API</button>
-            <button onclick="console.clear()" style="margin: 5px; padding: 3px 5px;">Clear Console</button>
-        </div>
-        @endif
+        <!-- Le panneau de débogage a été retiré mais les fonctions restent disponibles via la console -->
     </body>
 </html>

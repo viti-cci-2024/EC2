@@ -86,15 +86,7 @@
 <body>
     <div id="app"></div>
     
-    <!-- Panneau de débogage pour tester l'API directement -->
-    @if(app()->environment('local'))
-    <div id="direct-debug-panel" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 10px; border-radius: 5px; z-index: 9999; font-family: monospace;">
-        <div>Débogage API Direct</div>
-        <button onclick="window.directAPITest('/api/bungalow-availability').then(r => console.log('Test disponibilité:', r));" style="margin: 5px; padding: 3px 5px;">Test Disponibilité</button>
-        <button onclick="window.submitDirectReservation().then(r => console.log('Réservation directe:', r));" style="margin: 5px; padding: 3px 5px;">Créer Réservation</button>
-        <button onclick="console.clear()" style="margin: 5px; padding: 3px 5px;">Effacer Console</button>
-    </div>
-    @endif
+    <!-- Le panneau de débogage a été retiré mais les fonctions restent disponibles pour la console -->
     <!-- Script de débogage pour surveiller les clics sur le bouton Réserver -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
